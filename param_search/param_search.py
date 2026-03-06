@@ -14,7 +14,7 @@ import warnings
 warnings.filterwarnings("ignore")
 # from test_case import setup_seed
 from logger import LoggerGenerator
-log_directory = '/data/yjw/logs'
+log_directory = '/data/logs'
 logger = LoggerGenerator.get_logger(log_directory, name="param search", console_output=True)
 
 def find_hyperparams(tensor: torch.Tensor) -> dict:
@@ -301,7 +301,7 @@ def search_param_model(model_name,dtype,model_path,results_dir):
         raise
 
 def main():
-    model_dir = '/data/yjw/models'
+    model_dir = '/data/models'
 
     # Iterate through all
     """
@@ -340,7 +340,7 @@ def main():
         'BF16': BF16_models
     }
     error_models = []
-    results_dir = '/data/yjw/results_data/tmp_test'
+    results_dir = '/data/results_data/tmp_test'
     for dtype in dtypes:
         for model_name in models[dtype]:
             # Check if this model already exists in the result directory

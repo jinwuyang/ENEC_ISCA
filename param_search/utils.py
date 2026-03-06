@@ -195,8 +195,8 @@ def get_result_path(processed_file_path,result_dir):
     """
     Converts the result file path to a path within the result directory by finding the common prefix.
     For example:
-    input: /data/yjw/2.7B_weight_tensors/xxx.txt and /data/yjw/results/gradient
-    return: /data/yjw/results/gradient/2.7B_weight_tensors/xxx.txt
+    input: /data/2.7B_weight_tensors/xxx.txt and /data/results/gradient
+    return: /data/results/gradient/2.7B_weight_tensors/xxx.txt
     
     Returns the full path of the result file in the result folder,
     mirroring the structure relative to the common prefix.
