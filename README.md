@@ -1,78 +1,78 @@
-# ENEC代码
+# ENEC Code
 
-## 目录结构
-- enec:算子实现代码，包括消融实验和最终ENEC版本。
-- param_search：超参搜索代码
+## Directory Structure
+- enec: Operator implementation code, including ablation experiments and the final ENEC version.
+- param_search: Hyperparameter search code.
 
-## 使用方法
-### 超参数搜索：
+## Usage
+### Hyperparameter Search:
 ```python
-# 请修改param_search/param_search.py代码中的model_dir为自己的模型存储目录，results_dir为结果保存目录
-# 然后运行：
+# Please modify the model_dir in param_search/param_search.py to your own model storage directory, and results_dir to the result saving directory.
+# Then run:
 python param_search.py
 ```
 
-### ENEC算子使用：
-- 编译
+### ENEC Operator Usage:
+- Compile
 ``` shell
-# 进入对应文件夹运行
+# Enter the corresponding folder to run
 mkdir build
 cd build
 cmake ..
 make
 ```
-- 测试
+- Test
 ```shell
-# 压缩
+# Compress
 ./compress sourcefile tempfile inputBytesNum
-# 解压缩
+# Decompress
 ./decompress tempfile resfile sourcefile 
 ```
-- 压缩率：压缩时会打印出压缩率。也可通过将压缩前文件大小除以压缩后文件大小作为压缩率。
-- 性能：请基于msprof进行测试压缩/解压缩，然后在prof结果文件夹中的mindstudio_profiler_output文件夹中查看op_statistic的csv文件中的结果
+- Compression Ratio: The compression ratio will be printed during compression. You can also calculate the compression ratio by dividing the file size before compression by the file size after compression.
+- Performance: Please use msprof for compression/decompression testing, and then check the results in the op_statistic csv file within the mindstudio_profiler_output folder in the prof result folder.
 
 
 
-## 核心API接口
-### 超参数搜索
+## Core API Interfaces
+### Hyperparameter Search
 #### find_hyperparams
 
-- 概述：一个用于根据输入张量寻找最优超参数的函数，基于特定的算法返回最优的超参数 `b`, `n`, `m`, `L` 以及平均比特长度。
+- Overview: A function for finding the optimal hyperparameters based on an input tensor. It returns the optimal hyperparameters `b`, `n`, `m`, `L`, and the average bit length based on a specific algorithm.
 
-- 签名：
+- Signature:
 
   ```python
   def find_hyperparams(tensor: torch.Tensor) -> dict
   ```
 
-- 参数：
+- Parameters:
 
-  | 参数名 | 类型         | 描述                                                         |
-  | ------ | ------------ | ------------------------------------------------------------ |
-  | tensor | torch.Tensor | 输入张量，支持的数据类型为 `torch.bfloat16`、`torch.float16` 或 `torch.float32`。 |
+  | Parameter Name | Type         | Description                                                  |
+  | -------------- | ------------ | ------------------------------------------------------------ |
+  | tensor         | torch.Tensor | The input tensor. Supported data types are `torch.bfloat16`, `torch.float16`, or `torch.float32`. |
 
-- 返回值：
+- Return Value:
 
-  | 返回类型 | 描述                                   |
-  | -------- | -------------------------------------- |
-  | dict     | 包含以下键值的字典：                   |
-  |          | - `b`: 超参数 b，无分支整数变换参数。  |
-  |          | - `n`: 超参数 n，量化位宽参数。        |
-  |          | - `m`: 超参数 m，量化位宽参数。        |
-  |          | - `L`: 超参数 L，分组参数。            |
-  |          | - `average_bit_length`: 平均比特长度。 |
+  | Return Type | Description                            |
+  | ----------- | -------------------------------------- |
+  | dict        | A dictionary containing the following keys: |
+  |             | - `b`: Hyperparameter b, branchless integer transformation parameter. |
+  |             | - `n`: Hyperparameter n, quantization bit-width parameter. |
+  |             | - `m`: Hyperparameter m, quantization bit-width parameter. |
+  |             | - `L`: Hyperparameter L, grouping parameter. |
+  |             | - `average_bit_length`: The average bit length. |
 
 ### ENEC
 
-#### 压缩：
+#### Compression:
 
-- 概述
+- Overview
 
-​	这是一个针对BF16数据类型的压缩算法实现，主要用于AI芯片上的高效数据压缩。该算法通过复杂的位操作和分层压缩技术，将BF16浮点数据分解为多个组成部分（尾数、指数、符号位等）并进行压缩存储，以减小内存占用和提高数据传输效率。
+  This is a compression algorithm implementation for the BF16 data type, primarily used for efficient data compression on AI chips. Through complex bit operations and hierarchical compression techniques, the algorithm decomposes BF16 floating-point data into multiple components (mantissa, exponent, sign bit, etc.) and compresses them for storage, in order to reduce memory footprint and improve data transfer efficiency.
 
-- 签名
+- Signature
 
-主入口函数：
+Main entry function:
 
 ```c++
 extern "C" void enec_compress(
@@ -86,7 +86,7 @@ extern "C" void enec_compress(
 )
 ```
 
-设备核函数
+Device kernel function:
 
 ```c++
 __global__ __aicore__ void compBF16(
@@ -104,7 +104,7 @@ __global__ __aicore__ void compBF16(
 )
 ```
 
-压缩内核类
+Compression kernel class:
 
 ```c++
 template <typename T>
@@ -121,39 +121,39 @@ private:
 }
 ```
 
-- 输入参数
+- Input Parameters
 
-cphd: 压缩头信息结构体，包含数据类型、数据块数量、大小等元数据
-stream: 计算流指针，用于异步执行管理
-srcDevice: 源数据设备内存指针，待压缩的原始BF16数据
-histogramDevice: 直方图数据设备指针，提供压缩统计信息
+cphd: Compression header information structure, containing metadata such as data type, data block quantity, size, etc.
+stream: Computation stream pointer, used for asynchronous execution management.
+srcDevice: Source data device memory pointer, the original BF16 data to be compressed.
+histogramDevice: Histogram data device pointer, providing compression statistics.
 
-- 输出参数
+- Output Parameters
 
-compressedDevice: 压缩后数据设备指针（主要压缩结果）
-compressedFinal: 最终压缩数据设备指针（完整压缩包）
-blockCompSize: 块压缩大小信息设备指针
+compressedDevice: Compressed data device pointer (primary compression result).
+compressedFinal: Final compressed data device pointer (complete compressed package).
+blockCompSize: Block compression size information device pointer.
 
-- 内部参数
+- Internal Parameters
 
-datablockNum: 数据块总数
-datablockSize: 单个数据块大小（字节）
-elementNum: 每个数据块中的元素数量
-tileLength: 瓦片长度，用于数据分块处理
+datablockNum: Total number of data blocks.
+datablockSize: Size of a single data block (in bytes).
+elementNum: Number of elements in each data block.
+tileLength: Tile length, used for data chunking processing.
 
-- 返回值
+- Return Value
 
-所有函数均无返回值（void类型），执行结果通过输出参数返回。压缩状态和错误信息需要通过其他机制（如返回值或异常）处理，在当前代码中未体现。
+All functions have no return value (`void` type). Execution results are returned via output parameters. Compression status and error information need to be handled through other mechanisms (such as return values or exceptions), which are not reflected in the current code.
 
-#### 解压缩
+#### Decompression
 
-- 概述
+- Overview
 
-​	这是一个针对BF16数据类型的解压缩算法实现，主要用于AI芯片上的高效数据解压缩。该算法是压缩算法的逆过程，通过复杂的位操作、累积和计算、数据重组等技术，将压缩后的数据恢复为原始的BF16格式数据。
+  This is a decompression algorithm implementation for the BF16 data type, primarily used for efficient data decompression on AI chips. This algorithm is the inverse process of the compression algorithm. Through complex bit operations, cumulative sum calculations, and data recombination techniques, it restores the compressed data back to the original BF16 format data.
 
-- 签名
+- Signature
 
-主入口函数
+Main entry function:
 
 ```c++
 extern "C" void enec_decompress(
@@ -164,7 +164,7 @@ extern "C" void enec_decompress(
 )
 ```
 
-设备核函数
+Device kernel function:
 
 ```c++
 __global__ __aicore__ void decompBF16(
@@ -185,7 +185,7 @@ __global__ __aicore__ void decompBF16(
 )
 ```
 
-解压缩内核类
+Decompression kernel class:
 
 ```c++
 template <typename T>
@@ -201,36 +201,36 @@ private:
 }
 ```
 
-- 输入参数
+- Input Parameters
 
-cphd: 压缩头信息结构体指针，包含解压缩所需的元数据
-stream: 计算流指针，用于异步执行管理
-compressed: 压缩数据设备内存指针，包含所有压缩组件
+cphd: Pointer to compression header information structure, containing metadata required for decompression.
+stream: Computation stream pointer, used for asynchronous execution management.
+compressed: Compressed data device memory pointer, containing all compression components.
 
-- 内部处理参数
+- Internal Processing Parameters
 
-BUFFER_NUM: 缓冲区数量，用于队列管理
-elementNum: 每个数据块中的元素数量
-tileLength: 瓦片长度，用于数据分块处理
-tileNum: 瓦片数量，计算为elementNum / tileLength
-threadblockNum: 线程块数量，控制并行度
-datablockNum: 数据块总数
-datablockSize: 单个数据块大小（字节）
-totalCompressedBytes: 总压缩字节数
+BUFFER_NUM: Number of buffers, used for queue management.
+elementNum: Number of elements in each data block.
+tileLength: Tile length, used for data chunking processing.
+tileNum: Number of tiles, calculated as elementNum / tileLength.
+threadblockNum: Number of thread blocks, controlling the degree of parallelism.
+datablockNum: Total number of data blocks.
+datablockSize: Size of a single data block (in bytes).
+totalCompressedBytes: Total compressed bytes.
 
-- 压缩数据组件
+- Compressed Data Components
 
-msGlobal: 尾数部分数据输入
-eGlobal0: 指数部分数据0输入
-mblGlobal: 掩码位长度数据输入
-compSizePrefix: 压缩大小前缀信息
-eGlobal1: 指数部分数据1输入
+msGlobal: Mantissa part data input.
+eGlobal0: Exponent part data 0 input.
+mblGlobal: Mask bit length data input.
+compSizePrefix: Compression size prefix information.
+eGlobal1: Exponent part data 1 input.
 
-- 输出参数
+- Output Parameters
 
-decompressed: 解压缩后的原始数据设备内存指针
-decompressedGlobal: 解压缩数据全局输出
+decompressed: Decompressed original data device memory pointer.
+decompressedGlobal: Global output for decompressed data.
 
-- 返回值
+- Return Value
 
-所有函数均无返回值（void类型），执行结果通过输出参数返回。解压缩状态和错误信息需要通过其他机制处理，在当前代码中未体现。
+All functions have no return value (`void` type). Execution results are returned via output parameters. Decompression status and error information need to be handled through other mechanisms, which are not reflected in the current code.

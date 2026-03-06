@@ -1,5 +1,6 @@
 """
-    这个文件用于实现超参数搜索算法，寻找最佳的b,n,m,L组合，以最小化给定张量的平均位长度。
+This file is used to implement a hyperparameter search algorithm, 
+searching for the optimal combination of b, n, m, L to minimize the average bit length of a given tensor.
 """
 
 import torch
@@ -98,7 +99,7 @@ def find_hyperparams(tensor: torch.Tensor) -> dict:
     
     # Now search for m and L to minimize average bit length
     # L_options = [1, 2, 4, 8, 16, 32, 64]
-    L_options = [ 16, 32, 64] # 由于内存对齐限制，L必须大于等于16
+    L_options = [ 16, 32, 64] # L must be greater than or equal to 16 due to memory alignment constraints
     min_avg = float('inf')
     best_m = None
     best_L = None
@@ -134,46 +135,46 @@ def find_hyperparams(tensor: torch.Tensor) -> dict:
 
 def search_param_model(model_name,dtype,model_path,results_dir):
     """
-        对每个模型，进行如下处理：
-        搜索超参数b,n,m,L
+    For each model, perform the following processing:
+    Search for hyperparameters b, n, m, L
     """
     if model_name in ['stable-video-diffusion-img2vid-fp16']:
-        # 通过加载单独的safetensor文件进行测试
+        # Test by loading individual safetensor files
         weights_files = find_weights_files(model_path)
         weights = load_weights(weights_files)
         
-        # 创建结果目录
+        # Create result directory
         result_path = os.path.join(results_dir, dtype, model_name)
         os.makedirs(result_path, exist_ok=True)
         
-        # 准备保存所有结果
+        # Prepare to save all results
         all_results = []
-        param_combinations = {}  # 统计参数组合频率
+        param_combinations = {}  # Statistic for parameter combination frequencies
         
-        # 创建CSV文件并写入表头
+        # Create CSV file and write header
         csv_file = os.path.join(result_path, "hyperparams_results.csv")
         with open(csv_file, 'w') as f:
             f.write("parameter_name,shape,num_elements,b,n,m,L,average_bit_length\n")
         
-        # 遍历所有权重张量
+        # Iterate over all weight tensors
         total_tensors = len(weights)
         processed_count = 0
         
         for name, tensor in weights.items():
-            # 只处理多维度且支持的数据类型的张量
+            # Process only multi-dimensional tensors with supported data types
             if tensor.ndim > 1 and tensor.dtype in [torch.bfloat16, torch.float16, torch.float32]:
                 try:
                     hyperparams = find_hyperparams(tensor)
                     logger.info(f"Model: {model_name}, Tensor: {name}, Dtype: {tensor.dtype}, Hyperparams: {hyperparams}")
                     
-                    # 保存到CSV文件
+                    # Save to CSV file
                     shape_str = "x".join(map(str, tensor.shape))
                     num_elements = tensor.numel()
                     
                     with open(csv_file, 'a') as f:
                         f.write(f"{name},{shape_str},{num_elements},{hyperparams['b']},{hyperparams['n']},{hyperparams['m']},{hyperparams['L']},{hyperparams['average_bit_length']:.6f}\n")
                     
-                    # 统计参数组合频率
+                    # Count parameter combination frequency
                     combo_key = f"({hyperparams['b']},{hyperparams['n']},{hyperparams['m']},{hyperparams['L']})"
                     if combo_key in param_combinations:
                         param_combinations[combo_key] += 1
@@ -191,7 +192,7 @@ def search_param_model(model_name,dtype,model_path,results_dir):
                 else:
                     logger.warning(f"Skipping tensor {name} in model {model_name} as it has unsupported dtype: {tensor.dtype}")
         
-        # 生成统计信息文件
+        # Generate statistics file
         stats_file = os.path.join(result_path, "param_combinations_stats.txt")
         with open(stats_file, 'w') as f:
             f.write("Parameter Combinations Statistics\n")
@@ -200,7 +201,7 @@ def search_param_model(model_name,dtype,model_path,results_dir):
             f.write("-" * 40 + "\n")
             
             if param_combinations:
-                # 按频率降序排列
+                # Sort descending by frequency
                 sorted_combinations = sorted(param_combinations.items(), key=lambda x: x[1], reverse=True)
                 total_params = sum(param_combinations.values())
                 
@@ -226,23 +227,23 @@ def search_param_model(model_name,dtype,model_path,results_dir):
 
 
     try:
-        # 获取模型参数分布数据
+        # Get parameter distribution data of the model
         model,model_name = load(model_path)
 
-        # 创建结果目录
+        # Create result directory
         result_path = os.path.join(results_dir, dtype, model_name)
         os.makedirs(result_path, exist_ok=True)
         
-        # 准备保存所有结果
+        # Prepare to save all results
         all_results = []
-        param_combinations = {}  # 统计参数组合频率
+        param_combinations = {}  # Statistic for parameter combination frequencies
         
-        # 创建CSV文件并写入表头
+        # Create CSV file and write header
         csv_file = os.path.join(result_path, "hyperparams_results.csv")
         with open(csv_file, 'w') as f:
             f.write("parameter_name,shape,num_elements,b,n,m,L,average_bit_length\n")
 
-        # 统计参数搜索总的时间(包含文件写入以及总的频率统计的时间)
+        # Record total time for parameter search (including file writing and total frequency statistics time)
         start_time = time.time()
 
         for name, param in model.cpu().named_parameters():
@@ -251,14 +252,14 @@ def search_param_model(model_name,dtype,model_path,results_dir):
                     hyperparams = find_hyperparams(param.data)
                     logger.info(f"Model: {model_name}, Param: {name}, Dtype: {param.dtype}, Hyperparams: {hyperparams}")
                     
-                    # 保存到CSV文件
+                    # Save to CSV file
                     shape_str = "x".join(map(str, param.shape))
                     num_elements = param.numel()
                     
                     with open(csv_file, 'a') as f:
                         f.write(f"{name},{shape_str},{num_elements},{hyperparams['b']},{hyperparams['n']},{hyperparams['m']},{hyperparams['L']},{hyperparams['average_bit_length']:.6f}\n")
                     
-                    # 统计参数组合频率
+                    # Count parameter combination frequency
                     combo_key = f"({hyperparams['b']},{hyperparams['n']},{hyperparams['m']},{hyperparams['L']})"
                     if combo_key in param_combinations:
                         param_combinations[combo_key] += 1
@@ -270,7 +271,7 @@ def search_param_model(model_name,dtype,model_path,results_dir):
         end_time = time.time()
         elapsed_time = end_time - start_time
         logger.info(f"Total time for hyperparameter search and saving results: {elapsed_time:.2f} seconds")
-        # 生成统计信息文件
+        # Generate statistics file
         stats_file = os.path.join(result_path, "param_combinations_stats.txt")
         with open(stats_file, 'w') as f:
             f.write("Parameter Combinations Statistics\n")
@@ -279,7 +280,7 @@ def search_param_model(model_name,dtype,model_path,results_dir):
             f.write("Format: (b,n,m,L) -> frequency\n")
             f.write("-" * 40 + "\n")
             
-            # 按频率降序排列
+            # Sort descending by frequency
             sorted_combinations = sorted(param_combinations.items(), key=lambda x: x[1], reverse=True)
             total_params = sum(param_combinations.values())
             
@@ -302,17 +303,17 @@ def search_param_model(model_name,dtype,model_path,results_dir):
 def main():
     model_dir = '/data/yjw/models'
 
-    # 遍历所有
+    # Iterate through all
     """
     ├── BF16
-    │   ├── deepseek-llm-7b-base
-    │   ├── falcon-7b
-    │   ├── Qwen3-32B
-    │   └── Qwen3-8B
-    │   └── Meta-Llama-3.1-8B-Instruct
+    │   ├── deepseek-llm-7b-base
+    │   ├── falcon-7b
+    │   ├── Qwen3-32B
+    │   └── Qwen3-8B
+    │   └── Meta-Llama-3.1-8B-Instruct
     ├── FP16
-    │   ├── CapybaraHermes-2.5-Mistral-7B
-    │   └── stable-video-diffusion-img2vid-fp16  # currently not supported
+    │   ├── CapybaraHermes-2.5-Mistral-7B
+    │   └── stable-video-diffusion-img2vid-fp16  # currently not supported
     └── FP32
         ├── bert-base-uncased
         ├── OLMo-1B-hf
@@ -342,7 +343,7 @@ def main():
     results_dir = '/data/yjw/results_data/tmp_test'
     for dtype in dtypes:
         for model_name in models[dtype]:
-            # 检查结果目录中该模型是否已经存在
+            # Check if this model already exists in the result directory
             model_result_path = f'{results_dir}/{dtype}/{model_name}/hyperparams_results.csv'
             if os.path.exists(model_result_path):
                 logger.info(f"Skipping {model_name} with {dtype}, results already exist.")
