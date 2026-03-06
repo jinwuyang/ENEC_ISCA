@@ -117,8 +117,8 @@ cmake --install build
             ./build/compress ~/rank0_1.dat ~/rank0_1.temp 33554432 
         fi
     else
-        # msprof --output=/root/wja/project/PANS/HANS-NPU/linear/Linear_AIV_apxy/msprof_test --aic-metrics=L2Cache,ArithmeticUtilization,PipeUtilization --aic-metrics=MemoryAccess --aic-metrics=Memory  --l2=on  --task-memory=on ./ascendc_kernels_bbit 32 32 8192 
-        # msprof op simulator --output=/root/wja/project/PANS/HANS-NPU/linear/Linear_AIV_apxy/msprof_sim   ./ascendc_kernels_bbit 32 32 8192
+        # msprof --output=/root/project/PANS/HANS-NPU/linear/Linear_AIV_apxy/msprof_test --aic-metrics=L2Cache,ArithmeticUtilization,PipeUtilization --aic-metrics=MemoryAccess --aic-metrics=Memory  --l2=on  --task-memory=on ./ascendc_kernels_bbit 32 32 8192 
+        # msprof op simulator --output=/root/project/PANS/HANS-NPU/linear/Linear_AIV_apxy/msprof_sim   ./ascendc_kernels_bbit 32 32 8192
         msprof op simulator --output=/root/SNEC/msprof_sim/compression ./build/compress ~/rank0_1.dat ~/rank0_1.temp 16777216
         msprof op simulator --output=/root/SNEC/msprof_sim/decompression ./build/decompress ~/rank0_1.temp ~/rank0_1.res ~/rank0_1.dat
     fi
