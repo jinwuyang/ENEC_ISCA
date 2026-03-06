@@ -1,7 +1,7 @@
 # ENEC Code
 
 ## Directory Structure
-- enec: Operator implementation code, including ablation experiments and the final ENEC version.
+- enec: Operator implementation code, including ENEC code.
 - param_search: Hyperparameter search code.
 
 ## Usage
